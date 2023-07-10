@@ -207,9 +207,10 @@ class HiFiGANGenerator(torch.nn.Module):
         """
         if self.use_ar:
             ar_feats = self.ar_model(ar) # (batchsize, ar_output)
+            print("before op: ", ar_feats.shape)
             ar_feats = ar_feats.unsqueeze(2).repeat(1, 1, c.shape[2]) # (batchsize, ar_output, length)
-            print(ar_feats.shape)
-            print(c.shape)
+            print("after op: ", ar_feats.shape)
+            print("c shape before concat: ", c.shape)
             c = torch.cat((c, ar_feats), dim=1)
         if self.use_spk_id:
             spk_emb = self.spk_emb_mat(spk_id)  # (batchsize, spk_emb_size)
@@ -220,7 +221,7 @@ class HiFiGANGenerator(torch.nn.Module):
             ph_feats = self.ph_emb_mat(ph)  # (batchsize, length, ph_emb_size)
             ph_feats = ph_feats.transpose(1, 2)
             c = torch.cat((c, ph_feats), dim=1)
-        print(c.shape)
+        print("c shape after concat: ", c.shape)
         c = self.input_conv(c)
         # print('after input_conv', c.shape)
         for i in range(self.num_upsamples):
