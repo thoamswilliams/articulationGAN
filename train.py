@@ -82,7 +82,8 @@ def synthesize(model, x, config):
     ins = [x[:, i:i+in_chunk_len, :] for i in range(0, x.shape[1], in_chunk_len)]
     prev_samples = torch.zeros((batch_size, config[params_key]["out_channels"], past_out_len), dtype=x.dtype, device=x.device)
     outs = []
-
+    print(in_chunk_len)
+    print(ins[0].shape)
     for cin in ins: # a2w cin (batch_size, in_chunk_len, num_feats)
         cin = cin.permute(0, 2, 1)  # a2w (batch_size, num_feats, in_chunk_len)
         cout = model(cin, ar=prev_samples)  # a2w (batch_size, 1, audio_chunk_length)
