@@ -71,6 +71,7 @@ def synthesize(model, x, config):
     Return:
         signal: (batch, audio_len)
     '''
+    print(x.shape)
     batch_size = x.shape[0]
     params_key = "generator_params"
     audio_chunk_len = config["batch_max_steps"]
