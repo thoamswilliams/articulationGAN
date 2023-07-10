@@ -303,6 +303,7 @@ def load_model(checkpoint, config=None, stats=None, generator2=False):
         torch.nn.Module: Model instance.
 
     """
+    print(config)
     if generator2:
         type_key = "generator2_type"
         params_key = "generator2_params"
@@ -331,7 +332,6 @@ def load_model(checkpoint, config=None, stats=None, generator2=False):
         k.replace("upsample_kernal_sizes", "upsample_kernel_sizes"): v
         for k, v in config[params_key].items()
     }
-    print(str(generator_params))
     model = model_class(**generator_params)
     if generator2:
         model.load_state_dict(
