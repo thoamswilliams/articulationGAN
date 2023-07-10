@@ -208,6 +208,8 @@ class HiFiGANGenerator(torch.nn.Module):
         if self.use_ar:
             ar_feats = self.ar_model(ar) # (batchsize, ar_output)
             ar_feats = ar_feats.unsqueeze(2).repeat(1, 1, c.shape[2]) # (batchsize, ar_output, length)
+            print(ar_feats.shape)
+            print(c.shape)
             c = torch.cat((c, ar_feats), dim=1)
         if self.use_spk_id:
             spk_emb = self.spk_emb_mat(spk_id)  # (batchsize, spk_emb_size)
