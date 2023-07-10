@@ -201,6 +201,7 @@ class WaveGANQNetwork(WaveGANDiscriminator):
     def __init__(
         self,
         num_categ,
+        slice_len,
         kernel_len=25,
         dim=64,
         stride=4,
@@ -209,6 +210,7 @@ class WaveGANQNetwork(WaveGANDiscriminator):
     ):
         super(WaveGANQNetwork, self).__init__(
                                         kernel_len=25,
+                                        slice_len = slice_len,
                                         dim=64,
                                         stride=4,
                                         use_batchnorm=False,
