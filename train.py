@@ -166,8 +166,8 @@ if __name__ == "__main__":
 
     # Parameters
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    synthesis_checkpoint_path = "/global/scratch/users/thomaslu/articulationGAN/articulatory_checkpoints/checkpoint-95000steps.pkl"
-    synthesis_config_path = "/global/scratch/users/thomaslu/articulationGAN/articulatory_checkpoints/config.yml"
+    synthesis_checkpoint_path = "/global/scratch/users/thomaslu/articulationGAN/wu_weights/best_mel_ckpt.pkl"
+    synthesis_config_path = "/global/scratch/users/thomaslu/articulationGAN/wu_weights/config.yml"
     with open(synthesis_config_path) as f:
         synthesis_config = yaml.load(f, Loader=yaml.Loader)
     datadir = args.datadir

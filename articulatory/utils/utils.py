@@ -303,7 +303,6 @@ def load_model(checkpoint, config=None, stats=None, generator2=False):
         torch.nn.Module: Model instance.
 
     """
-    print(config)
     if generator2:
         type_key = "generator2_type"
         params_key = "generator2_params"
