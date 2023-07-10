@@ -124,7 +124,7 @@ if __name__ == "__main__":
     parser.add_argument(
         '--slice_len',
         type=int,
-        default=20480,
+        default=16384,
         help='Length of training data'
     )
     parser.add_argument(
@@ -166,8 +166,8 @@ if __name__ == "__main__":
 
     # Parameters
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    synthesis_checkpoint_path = "articulatory_checkpoints/mocha_train_lcdx0pmf8nema_mocha2w_hifi_lcdx0pm/best_mel_ckpt.pkl"
-    synthesis_config_path = "articulatory_checkpoints/mocha_train_lcdx0pmf8nema_mocha2w_hifi_lcdx0pm/config.yml"
+    synthesis_checkpoint_path = "/global/scratch/users/thomaslu/articulatoryGAN/articulatory_checkpoints/checkpoint-95000steps.pkl"
+    synthesis_config_path = "/global/scratch/users/thomaslu/articulatoryGAN/articulatory_checkpoints/config.yml"
     with open(synthesis_config_path) as f:
         synthesis_config = yaml.load(f, Loader=yaml.Loader)
     datadir = args.datadir
