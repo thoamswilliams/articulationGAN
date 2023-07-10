@@ -84,8 +84,6 @@ def synthesize(model, x, config):
 
     for cin in ins: # a2w cin (batch_size, in_chunk_len, num_feats)
         cin = cin.permute(0, 2, 1)  # a2w (batch_size, num_feats, in_chunk_len)
-        print(cin.shape)
-        print(prev_samples.shape)
         cout = model(cin, ar=prev_samples)  # a2w (batch_size, 1, audio_chunk_length)
         outs.append(cout[:, 0, :])
         if past_out_len <= audio_chunk_len:
