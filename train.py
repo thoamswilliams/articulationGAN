@@ -124,7 +124,7 @@ if __name__ == "__main__":
     parser.add_argument(
         '--slice_len',
         type=int,
-        default=16384,
+        default=20480,
         help='Length of training data'
     )
     parser.add_argument(
@@ -191,7 +191,7 @@ if __name__ == "__main__":
         dataset,
         BATCH_SIZE,
         shuffle=True,
-        num_workers=2,
+        num_workers=4,
         drop_last=True
     )
 
