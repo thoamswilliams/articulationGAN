@@ -171,7 +171,7 @@ if __name__ == "__main__":
     # synthesis_checkpoint_path = "/global/scratch/users/thomaslu/articulationGAN/articulatory_checkpoints/mocha_train_lcdx0pmf8nema_mocha2w_hifi_lcdx0pm/best_mel_ckpt.pkl"
     # synthesis_config_path = "/global/scratch/users/thomaslu/articulationGAN/articulatory_checkpoints/mocha_train_lcdx0pmf8nema_mocha2w_hifi_lcdx0pm/config.yml"
     #new model 
-    synthesis_checkpoint_path = "/global/scratch/users/thomaslu/wu_weights/best_mel_ckpt.pkl"
+    synthesis_checkpoint_path = "/global/scratch/users/thomaslu/articulationGAN/wu_weights/best_mel_ckpt.pkl"
     synthesis_config_path = "/global/scratch/users/thomaslu/articulationGAN/wu_weights/config.yml"
     with open(synthesis_config_path) as f:
         synthesis_config = yaml.load(f, Loader=yaml.Loader)
