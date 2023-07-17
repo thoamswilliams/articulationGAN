@@ -311,8 +311,11 @@ if __name__ == "__main__":
                     z = torch.cat((c, _z), dim=1)
                 else:
                     z = _z
-                G_z = synthesize(EMA, G(z).permute(0, 2, 1), synthesis_config)
+                articul_out = G(z)
+                G_z = synthesize(EMA, articul_out.permute(0, 2, 1), synthesis_config)
 
+                print(articul_out.shape)
+                print(G_z.shape)
                 # G Loss
                 G_loss = torch.mean(-D(G_z))
                 G_loss.backward(retain_graph=True)
