@@ -9,7 +9,7 @@ import torch.optim as optim
 from scipy.io.wavfile import read
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-from parallel_wavegan.utils import load_model
+from articulatory.utils import load_model
 from tqdm import tqdm
 
 from infowavegan import WaveGANGenerator, WaveGANDiscriminator, WaveGANQNetwork
@@ -121,6 +121,7 @@ if __name__ == "__main__":
         default=5000,
         help='Epochs'
     )
+    #physical model seems to expect this
     parser.add_argument(
         '--slice_len',
         type=int,
@@ -166,8 +167,12 @@ if __name__ == "__main__":
 
     # Parameters
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    synthesis_checkpoint_path = "/global/scratch/users/thomaslu/articulationGAN/articulatory_checkpoints/mocha_train_lcdx0pmf8nema_mocha2w_hifi_lcdx0pm/best_mel_ckpt.pkl"
-    synthesis_config_path = "/global/scratch/users/thomaslu/articulationGAN/articulatory_checkpoints/mocha_train_lcdx0pmf8nema_mocha2w_hifi_lcdx0pm/config.yml"
+    #original model from Alan
+    # synthesis_checkpoint_path = "/global/scratch/users/thomaslu/articulationGAN/articulatory_checkpoints/mocha_train_lcdx0pmf8nema_mocha2w_hifi_lcdx0pm/best_mel_ckpt.pkl"
+    # synthesis_config_path = "/global/scratch/users/thomaslu/articulationGAN/articulatory_checkpoints/mocha_train_lcdx0pmf8nema_mocha2w_hifi_lcdx0pm/config.yml"
+    #new model 
+    synthesis_checkpoint_path = "/global/scratch/users/thomaslu/wu_weights/best_mel_ckpt.pkl"
+    synthesis_config_path = "/global/scratch/users/thomaslu/articulationGAN/wu_weights/config.yml"
     with open(synthesis_config_path) as f:
         synthesis_config = yaml.load(f, Loader=yaml.Loader)
     datadir = args.datadir
@@ -197,7 +202,8 @@ if __name__ == "__main__":
 
 
     def make_new():
-        G = WaveGANGenerator(nch=40).to(device).train()
+        #set nch according to the physical model, need to make into a CLI arg
+        G = WaveGANGenerator(nch=12).to(device).train()
         EMA = load_model(synthesis_checkpoint_path, synthesis_config)
         EMA.remove_weight_norm()
         EMA = EMA.eval().to(device)

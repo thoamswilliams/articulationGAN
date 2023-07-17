@@ -331,7 +331,6 @@ def load_model(checkpoint, config=None, stats=None, generator2=False):
         k.replace("upsample_kernal_sizes", "upsample_kernel_sizes"): v
         for k, v in config[params_key].items()
     }
-
     model = model_class(**generator_params)
     if generator2:
         model.load_state_dict(
