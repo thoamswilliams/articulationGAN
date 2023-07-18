@@ -319,9 +319,10 @@ if __name__ == "__main__":
                 for i in range(3):
                     audio = G_z[i,0,:]
                     writer.add_audio(f'Audio/sample{i}', audio, step)
-                    
+                
+                articul_np = G_z.cpu().detach().numpy()
                 for i in range(num_ch):
-                    articul = G_z[0,i,:].cpu().detach().numpy()
+                    articul = articul_np[0,i,:]
                     fig, ax = plt.plot(articul, range(len(articul)))
                     writer.add_figure(f"Articul/articul{i}", fig, step)
 
