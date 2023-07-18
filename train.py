@@ -12,6 +12,7 @@ from torch.utils.tensorboard import SummaryWriter
 from articulatory.utils import load_model
 from tqdm import tqdm
 import itertools as it
+import matplotlib.pyplot as plt
 
 from infowavegan import WaveGANGenerator, WaveGANDiscriminator, WaveGANQNetwork
 from utils import get_continuation_fname
@@ -201,10 +202,10 @@ if __name__ == "__main__":
         drop_last=True
     )
 
-
+    num_ch = 12
     def make_new():
         #set nch according to the physical model, need to make into a CLI arg
-        G = WaveGANGenerator(nch=12).to(device).train()
+        G = WaveGANGenerator(nch=num_ch).to(device).train()
         EMA = load_model(synthesis_checkpoint_path, synthesis_config)
         EMA.remove_weight_norm()
         EMA = EMA.eval().to(device)
@@ -314,8 +315,16 @@ if __name__ == "__main__":
                 articul_out = G(z)
                 G_z = synthesize(EMA, articul_out.permute(0, 2, 1), synthesis_config)
 
-                print(articul_out.shape)
-                print(G_z.shape)
+                #log sample articulator outputs and audio samples
+                for i in range(3):
+                    audio = G_z[i,0,:]
+                    writer.add_audio(f'Audio/sample{i}', audio, step)
+                    
+                for i in range(num_ch):
+                    articul = G_z[0,i,:]
+                    fig, ax = plt.plot(articul, range(len(articul)))
+                    writer.add_figure(f"Articul/articul{i}", fig, step)
+
                 # G Loss
                 G_loss = torch.mean(-D(G_z))
                 G_loss.backward(retain_graph=True)
@@ -329,7 +338,7 @@ if __name__ == "__main__":
                     optimizer_Q.step()
 
                 # Update
-                optimizer_G.step()
+                # optimizer_G.step()
             step += 1
 
         if not epoch % SAVE_INT:
