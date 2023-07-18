@@ -324,7 +324,7 @@ if __name__ == "__main__":
                 for i in range(num_ch):
                     articul = articul_np[0,i,:]
                     fig, ax = plt.subplots()
-                    ax.plot(articul, range(len(articul)))
+                    ax.plot(range(len(articul)), articul)
                     writer.add_figure(f"Articul/articul{i}", fig, step)
 
                 # G Loss
@@ -340,7 +340,7 @@ if __name__ == "__main__":
                     optimizer_Q.step()
 
                 # Update
-                # optimizer_G.step()
+                optimizer_G.step()
             step += 1
 
         if not epoch % SAVE_INT:
