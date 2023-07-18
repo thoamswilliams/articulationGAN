@@ -323,8 +323,8 @@ if __name__ == "__main__":
                 articul_np = G_z.cpu().detach().numpy()
                 for i in range(num_ch):
                     articul = articul_np[0,i,:]
-                    fig = plt.figure()
-                    fig.plot(articul, range(len(articul)))
+                    fig, ax = plt.subplots()
+                    ax.plot(articul, range(len(articul)))
                     writer.add_figure(f"Articul/articul{i}", fig, step)
 
                 # G Loss
