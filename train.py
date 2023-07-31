@@ -205,7 +205,7 @@ if __name__ == "__main__":
     num_ch = 12
     def make_new():
         #set nch according to the physical model, need to make into a CLI arg
-        G = WaveGANGenerator(nch=num_ch).to(device).train()
+        G = WaveGANGenerator(nch=num_ch, kernel_len = 5).to(device).train()
         EMA = load_model(synthesis_checkpoint_path, synthesis_config)
         EMA.remove_weight_norm()
         EMA = EMA.eval().to(device)
@@ -315,18 +315,6 @@ if __name__ == "__main__":
                 articul_out = G(z)
                 G_z = synthesize(EMA, articul_out.permute(0, 2, 1), synthesis_config)
 
-                #log sample articulator outputs and audio samples
-                for i in range(3):
-                    audio = G_z[i,0,:]
-                    writer.add_audio(f'Audio/sample{i}', audio, step)
-                
-                articul_np = articul_out.cpu().detach().numpy()
-                for i in range(num_ch):
-                    articul = articul_np[0,i,:]
-                    fig, ax = plt.subplots()
-                    ax.plot(range(len(articul)), articul)
-                    writer.add_figure(f"Articul/articul{i}", fig, step)
-
                 # G Loss
                 G_loss = torch.mean(-D(G_z))
                 G_loss.backward(retain_graph=True)
@@ -342,6 +330,19 @@ if __name__ == "__main__":
                 # Update
                 optimizer_G.step()
             step += 1
+
+            
+            #log sample articulator outputs and audio samples
+            for i in range(3):
+                audio = G_z[i,0,:]
+                writer.add_audio(f'Audio/sample{i}', audio, step)
+            
+            articul_np = articul_out.cpu().detach().numpy()
+            for i in range(num_ch):
+                articul = articul_np[0,i,:]
+                fig, ax = plt.subplots()
+                ax.plot(range(len(articul)), articul)
+                writer.add_figure(f"Articul/articul{i}", fig, step)
 
         if not epoch % SAVE_INT:
             torch.save(G.state_dict(), os.path.join(logdir, f'epoch{epoch}_step{step}_G.pt'))
