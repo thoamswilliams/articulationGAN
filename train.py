@@ -205,7 +205,8 @@ if __name__ == "__main__":
     num_ch = 12
     def make_new():
         #set nch according to the physical model, need to make into a CLI arg
-        G = WaveGANGenerator(nch=num_ch, kernel_len = 10).to(device).train()
+        G = WaveGANGenerator(nch=num_ch, kernel_len = 13).to(device).train()
+
         EMA = load_model(synthesis_checkpoint_path, synthesis_config)
         EMA.remove_weight_norm()
         EMA = EMA.eval().to(device)
@@ -286,6 +287,9 @@ if __name__ == "__main__":
                 z = torch.cat((c, _z), dim=1)
             else:
                 z = _z
+            
+            import torchinfo
+            torchinfo.summary(G, input_size = z.shape)
 
             fake = synthesize(EMA, G(z).permute(0, 2, 1), synthesis_config)
             penalty = gradient_penalty(G, D, real, fake, epsilon)
