@@ -205,7 +205,7 @@ if __name__ == "__main__":
     num_ch = 13
     def make_new():
         #set nch according to the physical model, need to make into a CLI arg
-        G = WaveGANGenerator(nch=num_ch, kernel_len=11, padding_len=5, use_batchnorm=True).to(device).train()
+        G = WaveGANGenerator(nch=num_ch, kernel_len=3, padding_len=1, use_batchnorm=True).to(device).train()
 
         EMA = load_model(synthesis_checkpoint_path, synthesis_config)
         EMA.remove_weight_norm()
