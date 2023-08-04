@@ -14,6 +14,9 @@ from tqdm import tqdm
 import itertools as it
 import matplotlib.pyplot as plt
 
+import torch_xla
+import torch_xla.core.xla_model as xm
+
 from infowavegan import WaveGANGenerator, WaveGANDiscriminator, WaveGANQNetwork
 from utils import get_continuation_fname
 
@@ -168,15 +171,16 @@ if __name__ == "__main__":
     train_Q = args.ciw or args.fiw
 
     # Parameters
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device=xm.xla_device()
     #original model from Alan
     # synthesis_checkpoint_path = "/global/scratch/users/thomaslu/articulationGAN/articulatory_checkpoints/mocha_train_lcdx0pmf8nema_mocha2w_hifi_lcdx0pm/best_mel_ckpt.pkl"
     # synthesis_config_path = "/global/scratch/users/thomaslu/articulationGAN/articulatory_checkpoints/mocha_train_lcdx0pmf8nema_mocha2w_hifi_lcdx0pm/config.yml"
     #new model 
     # synthesis_checkpoint_path = "/global/scratch/users/thomaslu/articulationGAN/mngu0_fema2w/best_mel_ckpt.pkl"
     # synthesis_config_path = "/global/scratch/users/thomaslu/articulationGAN/mngu0_fema2w/config.yml"
-    synthesis_checkpoint_path = "/global/scratch/users/thomaslu/articulationGAN/wu_weights/best_mel_ckpt.pkl"
-    synthesis_config_path = "/global/scratch/users/thomaslu/articulationGAN/wu_weights/config.yml"
+    synthesis_checkpoint_path = "synthesis/wu_weights/best_mel_ckpt.pkl"
+    synthesis_config_path = "synthesis/wu_weights/config.yml"
     
     with open(synthesis_config_path) as f:
         synthesis_config = yaml.load(f, Loader=yaml.Loader)
@@ -298,6 +302,7 @@ if __name__ == "__main__":
             writer.add_scalar('Loss/Discriminator', D_loss.detach().item(), step)
             D_loss.backward()
             optimizer_D.step()
+            xm.mark_step()
 
             if i % WAVEGAN_DISC_NUPDATES == 0:
                 optimizer_G.zero_grad()
@@ -330,9 +335,11 @@ if __name__ == "__main__":
                     Q_loss.backward()
                     writer.add_scalar('Loss/Q_Network', Q_loss.detach().item(), step)
                     optimizer_Q.step()
+                    xm.mark_step()
 
                 # Update
                 optimizer_G.step()
+                xm.mark_step()
             step += 1
 
             
@@ -349,12 +356,12 @@ if __name__ == "__main__":
             writer.add_figure(f"Articul/articul{i}", fig, step)
 
         if not epoch % SAVE_INT:
-            torch.save(G.state_dict(), os.path.join(logdir, f'epoch{epoch}_step{step}_G.pt'))
-            torch.save(D.state_dict(), os.path.join(logdir, f'epoch{epoch}_step{step}_D.pt'))
+            xm.save(G.state_dict(), os.path.join(logdir, f'epoch{epoch}_step{step}_G.pt'))
+            xm.save(D.state_dict(), os.path.join(logdir, f'epoch{epoch}_step{step}_D.pt'))
             if train_Q:
-                torch.save(Q.state_dict(), os.path.join(logdir, f'epoch{epoch}_step{step}_Q.pt'))
+                xm.save(Q.state_dict(), os.path.join(logdir, f'epoch{epoch}_step{step}_Q.pt'))
 
-            torch.save(optimizer_G.state_dict(), os.path.join(logdir, f'epoch{epoch}_step{step}_Gopt.pt'))
-            torch.save(optimizer_D.state_dict(), os.path.join(logdir, f'epoch{epoch}_step{step}_Dopt.pt'))
+            xm.save(optimizer_G.state_dict(), os.path.join(logdir, f'epoch{epoch}_step{step}_Gopt.pt'))
+            xm.save(optimizer_D.state_dict(), os.path.join(logdir, f'epoch{epoch}_step{step}_Dopt.pt'))
             if train_Q:
-                torch.save(optimizer_Q.state_dict(), os.path.join(logdir, f'epoch{epoch}_step{step}_Qopt.pt'))
+                xm.save(optimizer_Q.state_dict(), os.path.join(logdir, f'epoch{epoch}_step{step}_Qopt.pt'))
