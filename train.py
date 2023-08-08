@@ -167,6 +167,13 @@ if __name__ == "__main__":
         action='store_true',
         help='Trains a fiwgan'
     )
+
+    parser.add_argument(
+        '--short',
+        action='store_true',
+        help='Limits run to 5 steps'
+    )
+
     args = parser.parse_args()
     train_Q = args.ciw or args.fiw
 
@@ -341,6 +348,8 @@ if __name__ == "__main__":
                 optimizer_G.step()
                 xm.mark_step()
             step += 1
+            if(args.short and step > 5):
+                continue
 
             
         #log sample articulator outputs and audio samples
@@ -365,3 +374,6 @@ if __name__ == "__main__":
             xm.save(optimizer_D.state_dict(), os.path.join(logdir, f'epoch{epoch}_step{step}_Dopt.pt'))
             if train_Q:
                 xm.save(optimizer_Q.state_dict(), os.path.join(logdir, f'epoch{epoch}_step{step}_Qopt.pt'))
+
+        if(args.short):
+            continue
