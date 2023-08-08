@@ -55,7 +55,7 @@ class AudioDataSet:
 
 def gradient_penalty(G, D, real, fake, epsilon):
     x_hat = epsilon * real + (1 - epsilon) * fake
-    scores = D(x_hat)
+    scores = D(x_hat.to(device))
     grad = torch.autograd.grad(
         outputs=scores,
         inputs=x_hat,
