@@ -349,7 +349,7 @@ if __name__ == "__main__":
                 xm.mark_step()
             step += 1
             if(args.short and step > 5):
-                continue
+                break
 
             
         #log sample articulator outputs and audio samples
@@ -376,4 +376,4 @@ if __name__ == "__main__":
                 xm.save(optimizer_Q.state_dict(), os.path.join(logdir, f'epoch{epoch}_step{step}_Qopt.pt'))
 
         if(args.short):
-            continue
+            break
