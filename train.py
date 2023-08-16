@@ -339,7 +339,7 @@ if __name__ == "__main__":
         #log sample articulator outputs and audio samples
         for i in range(3):
             audio = G_z[i,0,:]
-            writer.add_audio(f'Audio/sample{i}', audio, step)
+            writer.add_audio(f'Audio/sample{i}', audio, step, sample_rate = 16000)
         
         articul_np = articul_out.cpu().detach().numpy()
         for i in range(num_ch):

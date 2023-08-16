@@ -41,7 +41,7 @@ print(G_z.shape)
 writer = SummaryWriter(logdir)
 for i in range(BATCH_SIZE):
     audio = G_z[i,0,:]
-    writer.add_audio(f'Audio/sample{i}', audio, 0)
+    writer.add_audio(f'Audio/sample{i}', audio, 0, sample_rate=16000)
 
 articul_np = articul_out.cpu().detach().numpy()
 for i in range(num_ch):
