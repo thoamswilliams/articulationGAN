@@ -9,7 +9,6 @@ import torch.optim as optim
 from scipy.io.wavfile import read
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-from articulatory.utils import load_model
 from tqdm import tqdm
 import itertools as it
 import matplotlib.pyplot as plt
@@ -112,9 +111,15 @@ if __name__ == "__main__":
         help='Log/Results Directory'
     )
     parser.add_argument(
+        '--emadir',
+        type=str,
+        required=True,
+        help='EMA Weights Directory'
+    )
+    parser.add_argument(
         '--num_categ',
         type=int,
-        default=1,
+        default=0,
         help='Q-net categories'
     )
     parser.add_argument(
@@ -123,7 +128,6 @@ if __name__ == "__main__":
         default=5000,
         help='Epochs'
     )
-    #physical model seems to expect this
     parser.add_argument(
         '--slice_len',
         type=int,
@@ -152,6 +156,26 @@ if __name__ == "__main__":
         help='Save interval in epochs'
     )
 
+    parser.add_argument(
+        '--num_channels',
+        type=int,
+        default=13,
+        help='Size of articulatory generator output'
+    )
+
+    parser.add_argument(
+        '--log_audio',
+        action='store_true',
+        help='Save audio and articulator plots'
+    )
+
+    parser.add_argument(
+        '--kernel_len',
+        type=int,
+        default=7,
+        help='Sets the generator kernel length, must be odd'
+    )
+
     # Q-net Arguments
     Q_group = parser.add_mutually_exclusive_group()
     Q_group.add_argument(
@@ -167,17 +191,22 @@ if __name__ == "__main__":
     args = parser.parse_args()
     train_Q = args.ciw or args.fiw
 
+    assert args.kernel_len % 2 == 1, f"generator kernel length must be odd, got: {args.kernel_len}"
+    
+
+    from articulatory.utils import load_model
+
+
+
     # Parameters
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    #original model from Alan
-    # synthesis_checkpoint_path = "/global/scratch/users/thomaslu/articulationGAN/articulatory_checkpoints/mocha_train_lcdx0pmf8nema_mocha2w_hifi_lcdx0pm/best_mel_ckpt.pkl"
-    # synthesis_config_path = "/global/scratch/users/thomaslu/articulationGAN/articulatory_checkpoints/mocha_train_lcdx0pmf8nema_mocha2w_hifi_lcdx0pm/config.yml"
-    #new model 
-    # synthesis_checkpoint_path = "/global/scratch/users/thomaslu/articulationGAN/mngu0_fema2w/best_mel_ckpt.pkl"
-    # synthesis_config_path = "/global/scratch/users/thomaslu/articulationGAN/mngu0_fema2w/config.yml"
-    synthesis_checkpoint_path = "/global/scratch/users/thomaslu/articulationGAN/wu_weights/best_mel_ckpt.pkl"
-    synthesis_config_path = "/global/scratch/users/thomaslu/articulationGAN/wu_weights/config.yml"
-    
+    if args.num_channels == 12:
+        synthesis_checkpoint_path = args.emadir + "/mngu0_fema2w_12ch/best_mel_ckpt.pkl"
+        synthesis_config_path = args.emadir + "/mngu0_fema2w_12ch/config.yml"
+    elif args.num_channels == 13:
+        synthesis_checkpoint_path = args.emadir + "/mngu0_fema2w_13ch/best_mel_ckpt.pkl"
+        synthesis_config_path = args.emadir + "/mngu0_fema2w_13ch/config.yml"
+
     with open(synthesis_config_path) as f:
         synthesis_config = yaml.load(f, Loader=yaml.Loader)
     datadir = args.datadir
@@ -205,11 +234,10 @@ if __name__ == "__main__":
         drop_last=True
     )
 
-    num_ch = 12
-    def make_new():
-        #set nch according to the physical model, need to make into a CLI arg
-        G = WaveGANGenerator(nch=num_ch, kernel_len=3, padding_len=1, use_batchnorm=False).to(device).train()
 
+    def make_new():
+        padding_len = (int)((args.kernel_len - 1)/2)
+        G = WaveGANGenerator(nch=args.num_channels, kernel_len=args.kernel_len, padding_len=padding_len, use_batchnorm=False).to(device).train()
         EMA = load_model(synthesis_checkpoint_path, synthesis_config)
         EMA.remove_weight_norm()
         EMA = EMA.eval().to(device)
@@ -222,12 +250,12 @@ if __name__ == "__main__":
         Q, optimizer_Q, criterion_Q = (None, None, None)
         if train_Q:
             Q = WaveGANQNetwork(slice_len=SLICE_LEN, num_categ=NUM_CATEG).to(device).train()
+        if args.fiw:
             optimizer_Q = optim.RMSprop(it.chain(G.parameters(), Q.parameters()), lr=LEARNING_RATE)
-
-            if args.fiw:
-                criterion_Q = torch.nn.BCEWithLogitsLoss()
-            elif args.ciw:
-                criterion_Q = lambda inpt, target: torch.nn.CrossEntropyLoss()(inpt, target.max(dim=1)[1])
+            criterion_Q = torch.nn.BCEWithLogitsLoss()
+        elif args.ciw:
+            optimizer_Q = optim.RMSprop(it.chain(G.parameters(), Q.parameters()), lr=LEARNING_RATE)
+            criterion_Q = lambda inpt, target: torch.nn.CrossEntropyLoss()(inpt, target.max(dim=1)[1])
 
         return G, D, EMA, optimizer_G, optimizer_D, Q, optimizer_Q, criterion_Q
 
@@ -316,6 +344,7 @@ if __name__ == "__main__":
                     z = torch.cat((c, _z), dim=1)
                 else:
                     z = _z
+                
                 articul_out = G(z)
                 G_z = synthesize(EMA, articul_out.permute(0, 2, 1), synthesis_config)
 
@@ -335,18 +364,17 @@ if __name__ == "__main__":
                 optimizer_G.step()
             step += 1
 
+        if args.log_audio:
+            for i in range(3):
+                audio = G_z[i,0,:]
+                writer.add_audio(f'Audio/sample{i}', audio, step, sample_rate=16000)
             
-        #log sample articulator outputs and audio samples
-        for i in range(3):
-            audio = G_z[i,0,:]
-            writer.add_audio(f'Audio/sample{i}', audio, step, sample_rate = 16000)
-        
-        articul_np = articul_out.cpu().detach().numpy()
-        for i in range(num_ch):
-            articul = articul_np[0,i,:]
-            fig, ax = plt.subplots()
-            ax.plot(range(len(articul)), articul)
-            writer.add_figure(f"Articul/articul{i}", fig, step)
+            articul_np = articul_out.cpu().detach().numpy()
+            for i in range(args.num_channels):
+                articul = articul_np[0,i,:]
+                fig, ax = plt.subplots()
+                ax.plot(range(len(articul)), articul)
+                writer.add_figure(f"Articul/articul{i}", fig, step)
 
         if not epoch % SAVE_INT:
             torch.save(G.state_dict(), os.path.join(logdir, f'epoch{epoch}_step{step}_G.pt'))
@@ -358,3 +386,5 @@ if __name__ == "__main__":
             torch.save(optimizer_D.state_dict(), os.path.join(logdir, f'epoch{epoch}_step{step}_Dopt.pt'))
             if train_Q:
                 torch.save(optimizer_Q.state_dict(), os.path.join(logdir, f'epoch{epoch}_step{step}_Qopt.pt'))
+
+

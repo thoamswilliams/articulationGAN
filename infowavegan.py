@@ -165,6 +165,7 @@ class WaveGANGenerator(torch.nn.Module):
         output = self.upconv4(output)
         return(output)
 
+
 class WaveGANDiscriminator(torch.nn.Module):
     def __init__(
         self,
