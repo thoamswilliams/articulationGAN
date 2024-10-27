@@ -155,6 +155,7 @@ class WaveGANGenerator(torch.nn.Module):
     def forward(self, z):
         # Project and reshape
         output = self.z_project(z)
+        output = torch.nn.ReLU(z)
         output = self.z_batchnorm(output.view(-1, self.dim * self.dim_mul, 16))
 
         # Conv layers
