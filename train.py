@@ -18,7 +18,7 @@ from utils import get_continuation_fname
 
 
 class AudioDataSet:
-    def __init__(self, datadir, slice_len):
+    def __init__(self, datadir, slice_len, norm_coef = 1, rand_pad_data = False):
         print("Loading data")
         dir = os.listdir(datadir)
         x = np.zeros((len(dir), 1, slice_len))
@@ -26,7 +26,14 @@ class AudioDataSet:
         for file in tqdm(dir):
             audio = read(os.path.join(datadir, file))[1]
             if audio.shape[0] < slice_len:
-                audio = np.pad(audio, (0, slice_len - audio.shape[0]))
+                dist_to_pad = slice_len - audio.shape[0]
+                if(rand_pad_data):
+                    front_pad = np.random.randint(0, dist_to_pad+1)
+                    back_pad = dist_to_pad - front_pad
+                else:
+                    front_pad = 0
+                    back_pad = dist_to_pad
+                audio = np.pad(audio, (front_pad, back_pad))
             audio = audio[:slice_len]
 
             if audio.dtype == np.int16:
@@ -35,7 +42,7 @@ class AudioDataSet:
                 pass
             else:
                 raise NotImplementedError('Scipy cannot process atypical WAV files.')
-            audio /= np.max(np.abs(audio))
+            audio /= np.max(np.abs(audio)) * norm_coef 
             x[i, 0, :] = audio
             i += 1
 
@@ -123,6 +130,12 @@ if __name__ == "__main__":
         help='Q-net categories'
     )
     parser.add_argument(
+        '--norm_coef',
+        type=float,
+        default=1,
+        help='Data normalization coefficient'
+    )
+    parser.add_argument(
         '--num_epochs',
         type=int,
         default=5000,
@@ -168,12 +181,32 @@ if __name__ == "__main__":
         action='store_true',
         help='Save audio and articulator plots'
     )
-
+    parser.add_argument(
+        '--rand_pad_data',
+        action='store_true',
+        help='Randomly pad the training data'
+    )
+    parser.add_argument(
+        '--norm_in_training',
+        action='store_true',
+        help='Normalize EMA outputs during the training loop'
+    )
+    parser.add_argument(
+        '--do_not_update_G_with_Q',
+        action = 'store_true',
+        help='If enabled, does not update G using the Q optimizer'
+    )
     parser.add_argument(
         '--kernel_len',
         type=int,
         default=7,
         help='Sets the generator kernel length, must be odd'
+    )
+    parser.add_argument(
+        '--Q_phaseshuffle',
+        type=int,
+        default=2,
+        help='Phase shuffle of the Q network, in radians'
     )
 
     # Q-net Arguments
@@ -225,7 +258,7 @@ if __name__ == "__main__":
     SAVE_INT = args.save_int
 
     # Load data
-    dataset = AudioDataSet(datadir, SLICE_LEN)
+    dataset = AudioDataSet(datadir, SLICE_LEN, norm_coef = args.norm_coef, rand_pad_data = args.rand_pad_data)
     dataloader = DataLoader(
         dataset,
         BATCH_SIZE,
@@ -249,12 +282,16 @@ if __name__ == "__main__":
 
         Q, optimizer_Q, criterion_Q = (None, None, None)
         if train_Q:
-            Q = WaveGANQNetwork(slice_len=SLICE_LEN, num_categ=NUM_CATEG).to(device).train()
+            Q = WaveGANQNetwork(slice_len=SLICE_LEN, num_categ=NUM_CATEG, phaseshuffle_rad=args.Q_phaseshuffle).to(device).train()
+        if(not args.do_not_update_G_with_Q):
+            Q_opt_params = it.chain(G.parameters(), Q.parameters())
+        else:
+            Q_opt_params = Q.parameters()
         if args.fiw:
-            optimizer_Q = optim.RMSprop(it.chain(G.parameters(), Q.parameters()), lr=LEARNING_RATE)
+            optimizer_Q = optim.RMSprop(Q_opt_params, lr=LEARNING_RATE)
             criterion_Q = torch.nn.BCEWithLogitsLoss()
         elif args.ciw:
-            optimizer_Q = optim.RMSprop(it.chain(G.parameters(), Q.parameters()), lr=LEARNING_RATE)
+            optimizer_Q = optim.RMSprop(Q_opt_params, lr=LEARNING_RATE)
             criterion_Q = lambda inpt, target: torch.nn.CrossEntropyLoss()(inpt, target.max(dim=1)[1])
 
         return G, D, EMA, optimizer_G, optimizer_D, Q, optimizer_Q, criterion_Q
@@ -320,6 +357,8 @@ if __name__ == "__main__":
                 z = _z
 
             fake = synthesize(EMA, G(z).permute(0, 2, 1), synthesis_config)
+            if(args.norm_in_training):
+                fake = torch.nn.functional.normalize(fake, dim = -1)
             penalty = gradient_penalty(G, D, real, fake, epsilon)
 
             D_loss = torch.mean(D(fake) - D(real) + LAMBDA * penalty)
@@ -365,7 +404,7 @@ if __name__ == "__main__":
             step += 1
 
         if args.log_audio:
-            for i in range(3):
+            for i in range(1):
                 audio = G_z[i,0,:]
                 writer.add_audio(f'Audio/sample{i}', audio, step, sample_rate=16000)
             
