@@ -80,6 +80,7 @@ class WaveGANGenerator(torch.nn.Module):
         use_batchnorm=False,
         latent_dim=100,
         padding_len=12,
+        lrelu_alpha = 0.2
     ):
         # assert slice_len in [16384]
         super(WaveGANGenerator, self).__init__()
@@ -92,6 +93,9 @@ class WaveGANGenerator(torch.nn.Module):
         self.z_project = torch.nn.Linear(latent_dim, 4 * 4 * dim * dim_mul)
         self.z_batchnorm = torch.nn.BatchNorm1d(dim*dim_mul) if use_batchnorm else torch.nn.Identity()
         dim_mul //= 2
+
+        # Leaky ReLU after the dense layer
+        self.lrelu_alpha = lrelu_alpha
 
         # [16, 1024] -> [32, 512]
         self.upconv0 = UpConv(
@@ -151,6 +155,7 @@ class WaveGANGenerator(torch.nn.Module):
         # Project and reshape
         output = self.z_project(z)
         output = self.z_batchnorm(output.view(-1, self.dim * self.dim_mul, 16))
+        output = F.leaky_relu(output, self.lrelu_alpha)
 
         # Conv layers
         output = self.upconv0(output)
