@@ -10,7 +10,6 @@ class UpConv(torch.nn.Module):
         kernel_size=25,
         stride=4,
         padding=11,
-        upsample='zeros',
         relu=True,
         use_batchnorm=False,
         output_padding=1
@@ -75,16 +74,12 @@ class DownConv(torch.nn.Module):
 class WaveGANGenerator(torch.nn.Module):
     def __init__(
         self,
-        slice_len=16384,
         nch=1,
         kernel_len=25,
-        stride=4,
         dim=64,
         use_batchnorm=False,
         latent_dim=100,
         padding_len=12,
-        upsample='zeros',
-        train=False
     ):
         # assert slice_len in [16384]
         super(WaveGANGenerator, self).__init__()
@@ -165,7 +160,6 @@ class WaveGANGenerator(torch.nn.Module):
         output = self.upconv4(output)
         return(output)
 
-
 class WaveGANDiscriminator(torch.nn.Module):
     def __init__(
         self,
@@ -174,6 +168,7 @@ class WaveGANDiscriminator(torch.nn.Module):
         stride=4,
         use_batchnorm=False,
         slice_len=20480,
+        lrelu_alpha = 0.2,
         phaseshuffle_rad=0
     ):
         super(WaveGANDiscriminator, self).__init__()
@@ -181,11 +176,50 @@ class WaveGANDiscriminator(torch.nn.Module):
         self.slice_len = slice_len
 
         # Conv Layers
-        self.downconv_0 = DownConv(1, dim, kernel_len, stride, use_batchnorm, phaseshuffle_rad)
-        self.downconv_1 = DownConv(dim, dim*2, kernel_len, stride, use_batchnorm, phaseshuffle_rad)
-        self.downconv_2 = DownConv(dim*2, dim*4, kernel_len, stride, use_batchnorm, phaseshuffle_rad)
-        self.downconv_3 = DownConv(dim*4, dim*8, kernel_len, stride, use_batchnorm, phaseshuffle_rad)
-        self.downconv_4 = DownConv(dim*8, dim*16, kernel_len, stride, use_batchnorm, phaseshuffle_rad)
+        self.downconv_0 = DownConv(
+            in_channels = 1, 
+            filters = dim, 
+            kernel_size = kernel_len, 
+            stride = stride, 
+            use_batchnorm = use_batchnorm, 
+            alpha = lrelu_alpha, 
+            phaseshuffle_rad = phaseshuffle_rad)
+        
+        self.downconv_1 = DownConv(
+            in_channels = dim, 
+            filters = dim*2, 
+            kernel_size = kernel_len, 
+            stride = stride, 
+            use_batchnorm = use_batchnorm, 
+            alpha = lrelu_alpha, 
+            phaseshuffle_rad = phaseshuffle_rad)
+        
+        self.downconv_2 = DownConv(
+            in_channels = dim*2, 
+            filters = dim*4, 
+            kernel_size = kernel_len, 
+            stride = stride, 
+            use_batchnorm = use_batchnorm, 
+            alpha = lrelu_alpha, 
+            phaseshuffle_rad = phaseshuffle_rad)
+        
+        self.downconv_3 = DownConv(
+            in_channels = dim*4, 
+            filters = dim*8, 
+            kernel_size = kernel_len,
+            stride = stride, 
+            use_batchnorm = use_batchnorm, 
+            alpha = lrelu_alpha, 
+            phaseshuffle_rad = phaseshuffle_rad)
+        
+        self.downconv_4 = DownConv(
+            in_channels = dim*8, 
+            filters=dim*16, 
+            kernel_size = kernel_len, 
+            stride = stride, 
+            use_batchnorm = use_batchnorm, 
+            alpha = lrelu_alpha, 
+            phaseshuffle_rad = phaseshuffle_rad)
 
         # Logit
         self.fc_out = torch.nn.Linear(self.slice_len, 1)
@@ -203,7 +237,7 @@ class WaveGANQNetwork(WaveGANDiscriminator):
     def __init__(
         self,
         num_categ,
-        slice_len,
+        slice_len = 20480,
         kernel_len=25,
         dim=64,
         stride=4,
@@ -211,11 +245,12 @@ class WaveGANQNetwork(WaveGANDiscriminator):
         phaseshuffle_rad=0,
     ):
         super(WaveGANQNetwork, self).__init__(
-                                        kernel_len=25,
-                                        dim=64,
-                                        stride=4,
-                                        use_batchnorm=False,
-                                        phaseshuffle_rad=0
+                                        slice_len = slice_len,
+                                        kernel_len=kernel_len,
+                                        dim=dim,
+                                        stride=stride,
+                                        use_batchnorm=use_batchnorm,
+                                        phaseshuffle_rad=phaseshuffle_rad
                                     )
         self.fc_out = torch.nn.Linear(self.slice_len, num_categ)
 
