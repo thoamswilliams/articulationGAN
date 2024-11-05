@@ -70,36 +70,21 @@ def gradient_penalty(G, D, real, fake, epsilon):
     penalty = ((grad_norm - 1) ** 2).unsqueeze(1)
     return penalty
 
-def synthesize(model, x, config):
+def synthesize(model, x, spk_embed):
     '''
     Given batch of EMA data and EMA model, synthesizes speech output
     Args:
-        x: (batch, art_len, num_feats)
+        x: (batch, num_feats, art_len)
 
     Return:
-        signal: (batch, audio_len)
+        signal: (batch, 1, audio_len)
     '''
     batch_size = x.shape[0]
-    params_key = "generator_params"
-    audio_chunk_len = config["batch_max_steps"]
-    in_chunk_len = int(audio_chunk_len/config["hop_size"])
-    past_out_len = config[params_key]["ar_input"]
+    spk_embed = np.repeat(spk_embed[np.newaxis, :], batch_size, axis = 0)
+    out = model.decode_with_grad(x, spk_embed)
 
-    # NOTE extra_art not supported
-    ins = [x[:, i:i+in_chunk_len, :] for i in range(0, x.shape[1], in_chunk_len)]
-    prev_samples = torch.zeros((batch_size, config[params_key]["out_channels"], past_out_len), dtype=x.dtype, device=x.device)
-    outs = []
-
-    for cin in ins: # a2w cin (batch_size, in_chunk_len, num_feats)
-        cin = cin.permute(0, 2, 1)  # a2w (batch_size, num_feats, in_chunk_len)
-        cout = model(cin, ar=prev_samples)  # a2w (batch_size, 1, audio_chunk_length)
-        outs.append(cout[:, 0, :])
-        if past_out_len <= audio_chunk_len:
-            prev_samples = cout[:, :, -past_out_len:]
-        else:
-            prev_samples[:, :, :-in_chunk_len] = prev_samples[:, :, in_chunk_len:].clone()
-            prev_samples[:, :, -in_chunk_len:] = cout
-    out = torch.unsqueeze(torch.cat(outs, dim=1), 1)  # w2a (batch_size, seq_len, num_feats)
+    #shape from (batch, audio_len) to (batch, 1, audio_len)
+    torch.unsqueeze(out, 1)
     return out
 
 if __name__ == "__main__":
@@ -118,10 +103,10 @@ if __name__ == "__main__":
         help='Log/Results Directory'
     )
     parser.add_argument(
-        '--emadir',
+        '--spk_embed_path',
         type=str,
         required=True,
-        help='EMA Weights Directory'
+        help='Path to the speaker embedding .npy file'
     )
     parser.add_argument(
         '--num_categ',
@@ -172,7 +157,7 @@ if __name__ == "__main__":
     parser.add_argument(
         '--num_channels',
         type=int,
-        default=13,
+        default=14,
         help='Size of articulatory generator output'
     )
 
@@ -225,23 +210,15 @@ if __name__ == "__main__":
     train_Q = args.ciw or args.fiw
 
     assert args.kernel_len % 2 == 1, f"generator kernel length must be odd, got: {args.kernel_len}"
-    
-
-    from articulatory.utils import load_model
-
-
 
     # Parameters
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    if args.num_channels == 12:
-        synthesis_checkpoint_path = args.emadir + "/mngu0_fema2w_12ch/best_mel_ckpt.pkl"
-        synthesis_config_path = args.emadir + "/mngu0_fema2w_12ch/config.yml"
-    elif args.num_channels == 13:
-        synthesis_checkpoint_path = args.emadir + "/mngu0_fema2w_13ch/best_mel_ckpt.pkl"
-        synthesis_config_path = args.emadir + "/mngu0_fema2w_13ch/config.yml"
 
-    with open(synthesis_config_path) as f:
-        synthesis_config = yaml.load(f, Loader=yaml.Loader)
+    from sparc import load_model
+
+    with open(args.spk_embed_path, 'rb') as f:
+        spk_embed = np.load(f)
+
     datadir = args.datadir
     logdir = args.logdir
     SLICE_LEN = args.slice_len
@@ -267,13 +244,11 @@ if __name__ == "__main__":
         drop_last=True
     )
 
-
     def make_new():
         padding_len = (int)((args.kernel_len - 1)/2)
         G = WaveGANGenerator(nch=args.num_channels, kernel_len=args.kernel_len, padding_len=padding_len, use_batchnorm=False).to(device).train()
-        EMA = load_model(synthesis_checkpoint_path, synthesis_config)
-        EMA.remove_weight_norm()
-        EMA = EMA.eval().to(device)
+        EMA = load_model("en", device = device)
+
         D = WaveGANDiscriminator(slice_len=SLICE_LEN).to(device).train()
 
         # Optimizers
@@ -356,7 +331,7 @@ if __name__ == "__main__":
             else:
                 z = _z
 
-            fake = synthesize(EMA, G(z).permute(0, 2, 1), synthesis_config)
+            fake = synthesize(EMA, G(z), spk_embed)
             if(args.norm_in_training):
                 fake = torch.nn.functional.normalize(fake, dim = -1)
             penalty = gradient_penalty(G, D, real, fake, epsilon)
@@ -385,7 +360,7 @@ if __name__ == "__main__":
                     z = _z
                 
                 articul_out = G(z)
-                G_z = synthesize(EMA, articul_out.permute(0, 2, 1), synthesis_config)
+                G_z = synthesize(EMA, articul_out, spk_embed)
 
                 # G Loss
                 G_loss = torch.mean(-D(G_z))
