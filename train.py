@@ -70,7 +70,7 @@ def gradient_penalty(G, D, real, fake, epsilon):
     penalty = ((grad_norm - 1) ** 2).unsqueeze(1)
     return penalty
 
-def synthesize(model, x, spk_embed):
+def synthesize(model, x, spk_emb):
     '''
     Given batch of EMA data and EMA model, synthesizes speech output
     Args:
@@ -80,12 +80,16 @@ def synthesize(model, x, spk_embed):
         signal: (batch, 1, audio_len)
     '''
     batch_size = x.shape[0]
-    spk_embed = np.repeat(spk_embed[np.newaxis, :], batch_size, axis = 0)
-    out = model.decode_with_grad(x, spk_embed)
+    #copy the speaker embedding for each sample in the batch
+    spk_emb = np.repeat(spk_emb[np.newaxis, :], batch_size, axis = 0)
+    spk_emb = torch.from_numpy(spk_emb).float().to(model.device)
+    spk_emb = model.speaker_encoder._decode_spk_emb(spk_emb)
 
+    cout = model.generator(x, spk_emb)
+    wav = cout[:,0].squeeze(0)
     #shape from (batch, audio_len) to (batch, 1, audio_len)
-    torch.unsqueeze(out, 1)
-    return out
+    wav = torch.unsqueeze(wav, 1)
+    return wav
 
 if __name__ == "__main__":
     # Training Arguments
@@ -343,7 +347,7 @@ if __name__ == "__main__":
 
             if i % WAVEGAN_DISC_NUPDATES == 0:
                 optimizer_G.zero_grad()
-                EMA.zero_grad()
+                EMA.generator.zero_grad()
                 if train_Q:
                     optimizer_Q.zero_grad()
                 _z = torch.FloatTensor(BATCH_SIZE, 100 - NUM_CATEG).uniform_(-1, 1).to(device)
