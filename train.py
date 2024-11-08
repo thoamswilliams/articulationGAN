@@ -253,7 +253,7 @@ if __name__ == "__main__":
         G = WaveGANGenerator(nch=args.num_channels, kernel_len=args.kernel_len, padding_len=padding_len, use_batchnorm=False).to(device).train()
         EMA = load_model("en", device = device)
 
-        D = WaveGANDiscriminator(slice_len=SLICE_LEN).to(device).train()
+        D = WaveGANDiscriminator(slice_len=SLICE_LEN, phaseshuffle_rad = 2).to(device).train()
 
         # Optimizers
         optimizer_G = optim.Adam(G.parameters(), lr=LEARNING_RATE, betas=(BETA1, BETA2))

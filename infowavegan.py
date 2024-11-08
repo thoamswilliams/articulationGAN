@@ -160,8 +160,9 @@ class WaveGANGenerator(torch.nn.Module):
             stride = 4, 
             use_batchnorm = use_batchnorm,
             padding = padding_len,
-            alpha = 0, 
+            alpha = 1, 
             phaseshuffle_rad = 0)
+        
 
     def forward(self, z):
         # Project and reshape
@@ -176,7 +177,15 @@ class WaveGANGenerator(torch.nn.Module):
         output = self.upconv3(output)
         output = self.upconv4(output)
         output = self.downconv(output)
-        return(output)
+        #activation: empirically ema channels in (-4, 4), loudness in (0 ,2), pitch in (80, 255)
+        ema, loudness, pitch = torch.split(output, [12, 1, 1], dim = 1)
+        ema = 4*torch.tanh(ema)
+        loudness = 1 + torch.tanh(loudness)
+        pitch = torch.relu(pitch)
+
+        comb_out = torch.cat((ema, loudness, pitch), dim = 1)
+        
+        return(comb_out)
 
 class WaveGANDiscriminator(torch.nn.Module):
     def __init__(
