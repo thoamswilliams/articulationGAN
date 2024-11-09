@@ -250,7 +250,7 @@ if __name__ == "__main__":
 
     def make_new():
         padding_len = (int)((args.kernel_len - 1)/2)
-        G = WaveGANGenerator(nch=args.num_channels, kernel_len=args.kernel_len, padding_len=padding_len, use_batchnorm=False).to(device).train()
+        G = WaveGANGenerator(nch=args.num_channels, kernel_len=args.kernel_len, padding_len=padding_len, use_batchnorm=True).to(device).train()
         EMA = load_model("en", device = device)
 
         D = WaveGANDiscriminator(slice_len=SLICE_LEN, phaseshuffle_rad = 2).to(device).train()
