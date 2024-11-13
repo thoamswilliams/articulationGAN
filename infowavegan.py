@@ -180,7 +180,7 @@ class WaveGANGenerator(torch.nn.Module):
         #activation: empirically ema channels in (-4, 4), loudness in (0 ,2), pitch in (80, 255)
         ema, loudness, pitch = torch.split(output, [12, 1, 1], dim = 1)
         ema = 4*torch.nn.functional.normalize(ema, dim = 2)
-        loudness = 2 * torch.nn.functional.normalize(loudness)
+        loudness = torch.relu(loudness)
         pitch = torch.relu(pitch)
 
         comb_out = torch.cat((ema, loudness, pitch), dim = 1)
