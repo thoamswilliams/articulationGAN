@@ -179,13 +179,16 @@ class WaveGANGenerator(torch.nn.Module):
         output = self.downconv(output)
         #activation: empirically ema channels in (-4, 4), loudness in (0 ,2), pitch in (80, 255)
         ema, loudness, pitch = torch.split(output, [12, 1, 1], dim = 1)
-        ema = 4*torch.nn.functional.normalize(ema, dim = 2)
-        loudness = torch.relu(loudness)
-        pitch = torch.relu(pitch)
+        
+        ema_max, _ = torch.max(torch.abs(ema), dim=1, keepdim=True)
+        ema = 4*(ema / ema_max)
+        # ema = 4*F.normalize(ema, dim = 2)
 
+        loudness = F.relu(loudness)
+        pitch = F.relu(pitch)
         comb_out = torch.cat((ema, loudness, pitch), dim = 1)
         
-        return(comb_out)
+        return comb_out
 
 class WaveGANDiscriminator(torch.nn.Module):
     def __init__(
