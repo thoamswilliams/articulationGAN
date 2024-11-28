@@ -93,7 +93,7 @@ class WaveGANGenerator(torch.nn.Module):
         # [100] -> [16, 1024]
         self.z_project = torch.nn.Linear(latent_dim, 4 * 4 * dim * dim_mul)
         self.z_batchnorm = torch.nn.BatchNorm1d(dim*dim_mul) if use_batchnorm else torch.nn.Identity()
-        self.avg_pool = torch.nn.AvgPool1d(kernel_size=5, stride = 4, padding = 2)
+        self.avg_pool = torch.nn.AvgPool1d(kernel_size=7, stride = 1, padding = 3)
         dim_mul //= 2
 
         # Leaky ReLU after the dense layer
@@ -177,15 +177,15 @@ class WaveGANGenerator(torch.nn.Module):
         output = self.upconv2(output)
         output = self.upconv3(output)
         output = self.upconv4(output)
-        # output = self.downconv(output)
+        output = self.downconv(output)
         output = self.avg_pool(output)
         #activation: empirically ema channels in (-4, 4), loudness in (0 ,2), pitch in (80, 255)
         ema, loudness, pitch = torch.split(output, [12, 1, 1], dim = 1)
         
-        ema_max, _ = torch.max(torch.abs(ema), dim=1, keepdim=True)
-        ema = 4*(ema / ema_max)
+        # ema_max, _ = torch.max(torch.abs(ema), dim=1, keepdim=True)
+        # ema = 4*(ema / ema_max)
         # ema = 4*F.normalize(ema, dim = 2)
-
+        ema = F.relu(ema)
         loudness = F.relu(loudness)
         pitch = F.relu(pitch)
         comb_out = torch.cat((ema, loudness, pitch), dim = 1)

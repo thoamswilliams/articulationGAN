@@ -393,8 +393,9 @@ if __name__ == "__main__":
                 for i in range(args.num_channels):
                     articul = articul_np[0,i,:]
                     fig, ax = plt.subplots()
-                    ax.plot(range(len(articul)), articul)
-                    ax.set_title(f"articul{i}, max = {np.max(articul)}, min = {np.min(articul)}")
+                    ax.plot(range(len(articul)), articul, label = f"max = {np.max(articul)}, min = {np.min(articul)}")
+                    ax.set_title(f"articul{i}")
+                    ax.legend()
                     writer.add_figure(f"Articul/articul{i}", fig, step)
 
             torch.save(G.state_dict(), os.path.join(logdir, f'epoch{epoch}_step{step}_G.pt'))
