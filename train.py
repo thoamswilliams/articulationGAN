@@ -231,7 +231,7 @@ if __name__ == "__main__":
     WAVEGAN_DISC_NUPDATES = 5
     BATCH_SIZE = args.batch_size
     LAMBDA = 10
-    LEARNING_RATE = 1e-4
+    LEARNING_RATE = 4e-4
     BETA1 = 0.5
     BETA2 = 0.9
 
