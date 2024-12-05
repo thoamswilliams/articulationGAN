@@ -185,8 +185,12 @@ class WaveGANGenerator(torch.nn.Module):
         # ema_max, _ = torch.max(torch.abs(ema), dim=1, keepdim=True)
         # ema = 4*(ema / ema_max)
         # ema = 4*F.normalize(ema, dim = 2)
+
+        ema = 4 * F.tanh(ema)
+        ema = self.avg_pool(ema)
         loudness = F.tanh(loudness) + 1
         pitch = F.relu(pitch) * 60
+        
         comb_out = torch.cat((ema, pitch, loudness), dim = 1)
         
         return comb_out
