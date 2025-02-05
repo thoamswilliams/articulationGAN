@@ -1,5 +1,5 @@
 # Articulation GAN: Unsupervised Modeling of Articulatory Learning
-> A PyTorch Implementation for [Articulation GAN](https://arxiv.org/pdf/2210.15173.pdf)
+> Now incorporating Speech Articulatory Coding (SPARC)!
 
 ## Setup
 ```bash
@@ -7,8 +7,7 @@ git clone https://github.com/gbegus/articulationGAN.git
 cd articulationGAN
 pip install -r requirements.txt
 ```
-Here is a [link](https://drive.google.com/drive/folders/1_Sfjm0NhDAw6Zy3QnxnJY01DUwl24OUc?usp=sharing) to a folder containing the weights of several ema2wav models.
-
+Additionally, install and setup the Speech Articulatory Coding model (https://github.com/Berkeley-Speech-Group/Speech-Articulatory-Coding). Ensure that the sparc folder is on PATH.
 ## Training
 ```bash
 cd articulationGAN
