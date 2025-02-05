@@ -188,7 +188,7 @@ class WaveGANGenerator(torch.nn.Module):
 
         ema = 4 * F.tanh(ema)
         loudness = F.tanh(loudness) + 1
-        pitch = 170 + F.tanh(pitch)* 90
+        pitch = F.tanh(pitch) + 1
         
         comb_out = torch.cat((ema, pitch, loudness), dim = 1)
         comb_out = self.avg_pool(comb_out)
