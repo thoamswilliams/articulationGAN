@@ -93,7 +93,7 @@ class WaveGANGenerator(torch.nn.Module):
         # [100] -> [16, 1024]
         self.z_project = torch.nn.Linear(latent_dim, 4 * 4 * dim * dim_mul)
         self.z_batchnorm = torch.nn.BatchNorm1d(dim*dim_mul) if use_batchnorm else torch.nn.Identity()
-        self.avg_pool = torch.nn.AvgPool1d(kernel_size=10, stride = 1, padding = 2)
+        self.avg_pool = torch.nn.AvgPool1d(kernel_size=11, stride = 1, padding = 5)
         dim_mul //= 2
 
         # Leaky ReLU after the dense layer
