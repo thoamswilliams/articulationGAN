@@ -385,7 +385,7 @@ if __name__ == "__main__":
         if not epoch % SAVE_INT:
             if args.log_audio:
                 articul_out = G(z)
-                for i in range(1):
+                for i in range(8):
                     audio = G_z[i,0,:]
                     writer.add_audio(f'Audio/sample{i}', audio, step, sample_rate=16000)
                 
