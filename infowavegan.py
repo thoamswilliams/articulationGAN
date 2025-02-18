@@ -86,7 +86,7 @@ class WaveGANGenerator(torch.nn.Module):
         # assert slice_len in [16384]
         super(WaveGANGenerator, self).__init__()
         # dim_mul = 16 if slice_len == 16384 else 32
-        dim_mul = 4
+        dim_mul = 16
         self.dim = dim
         self.dim_mul = dim_mul
 
