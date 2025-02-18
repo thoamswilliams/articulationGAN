@@ -86,7 +86,7 @@ class WaveGANGenerator(torch.nn.Module):
         # assert slice_len in [16384]
         super(WaveGANGenerator, self).__init__()
         # dim_mul = 16 if slice_len == 16384 else 32
-        dim_mul = 16
+        dim_mul = 4
         self.dim = dim
         self.dim_mul = dim_mul
 
@@ -152,7 +152,7 @@ class WaveGANGenerator(torch.nn.Module):
             relu=True,
             use_batchnorm=use_batchnorm
         )
-
+        
         #[256, nch] -> [64, nch]
         self.downconv = DownConv(
             in_channels = nch, 
@@ -173,8 +173,11 @@ class WaveGANGenerator(torch.nn.Module):
 
         # Conv layers
         output = self.upconv0(output)
+        print(output.shape)
         output = self.upconv1(output)
+        print(output.shape)
         output = self.upconv2(output)
+        print(output.shape)
         output = self.upconv3(output)
         print(output.shape)
         output = self.upconv4(output)
