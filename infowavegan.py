@@ -91,7 +91,7 @@ class WaveGANGenerator(torch.nn.Module):
         self.dim_mul = dim_mul
 
         # [100] -> [16, 1024]
-        self.z_project = torch.nn.Linear(latent_dim, 4 * dim * dim_mul)
+        self.z_project = torch.nn.Linear(latent_dim, 4 * 4 * dim * dim_mul)
         self.z_batchnorm = torch.nn.BatchNorm1d(dim*dim_mul) if use_batchnorm else torch.nn.Identity()
         self.avg_pool = torch.nn.AvgPool1d(kernel_size=11, stride = 1, padding = 5, count_include_pad=False)
         dim_mul //= 2
@@ -176,7 +176,9 @@ class WaveGANGenerator(torch.nn.Module):
         output = self.upconv1(output)
         output = self.upconv2(output)
         output = self.upconv3(output)
+        print(output.shape)
         output = self.upconv4(output)
+        print(output.shape)
         # output = self.downconv(output)
         # output = self.avg_pool(output)
         #activation: empirically ema channels in (-4, 4), loudness in (0 ,2), pitch in (80, 255)
