@@ -86,12 +86,12 @@ class WaveGANGenerator(torch.nn.Module):
         # assert slice_len in [16384]
         super(WaveGANGenerator, self).__init__()
         # dim_mul = 16 if slice_len == 16384 else 32
-        dim_mul = 16
+        dim_mul = 4
         self.dim = dim
         self.dim_mul = dim_mul
 
         # [100] -> [16, 1024]
-        self.z_project = torch.nn.Linear(latent_dim, 4 * 4 * dim * dim_mul)
+        self.z_project = torch.nn.Linear(latent_dim, 4 * dim * dim_mul)
         self.z_batchnorm = torch.nn.BatchNorm1d(dim*dim_mul) if use_batchnorm else torch.nn.Identity()
         self.avg_pool = torch.nn.AvgPool1d(kernel_size=11, stride = 1, padding = 5, count_include_pad=False)
         dim_mul //= 2
@@ -177,8 +177,8 @@ class WaveGANGenerator(torch.nn.Module):
         output = self.upconv2(output)
         output = self.upconv3(output)
         output = self.upconv4(output)
-        output = self.downconv(output)
-        output = self.avg_pool(output)
+        # output = self.downconv(output)
+        # output = self.avg_pool(output)
         #activation: empirically ema channels in (-4, 4), loudness in (0 ,2), pitch in (80, 255)
         ema, pitch, loudness = torch.split(output, [12, 1, 1], dim = 1)
         
@@ -187,7 +187,7 @@ class WaveGANGenerator(torch.nn.Module):
         pitch = F.tanh(pitch) + 1
         
         comb_out = torch.cat((ema, pitch, loudness), dim = 1)
-        comb_out = self.avg_pool(comb_out)
+        # comb_out = self.avg_pool(comb_out)
         
         return comb_out
 
