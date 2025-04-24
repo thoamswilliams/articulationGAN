@@ -228,10 +228,10 @@ if __name__ == "__main__":
     SLICE_LEN = args.slice_len
     NUM_CATEG = args.num_categ
     NUM_EPOCHS = args.num_epochs
-    WAVEGAN_DISC_NUPDATES = 5
+    WAVEGAN_DISC_NUPDATES = 7
     BATCH_SIZE = args.batch_size
     LAMBDA = 10
-    LEARNING_RATE = 4e-4
+    LEARNING_RATE = 1e-4
     BETA1 = 0.5
     BETA2 = 0.9
 
